@@ -33,4 +33,13 @@ public class UserController {
         }
         return new ResponseEntity<>(createdUser, HttpStatus.OK);
     }
+
+    @PostMapping("/login")
+    public ResponseEntity<?> login(@RequestBody User user){
+        User dbUser = userService.login(user);
+
+        if(dbUser == null)
+            return new ResponseEntity<>("Wrong Conditionals", HttpStatus.NOT_ACCEPTABLE);
+        return new ResponseEntity<>(dbUser, HttpStatus.OK);
+    }
 }
