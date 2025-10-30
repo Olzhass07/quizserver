@@ -33,4 +33,14 @@ public class TestController {
             return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
+
+    @GetMapping
+    public ResponseEntity<?> getAllTest() {
+        try {
+            return new ResponseEntity<>(testService.getAllTest(), HttpStatus.OK);
+        }  catch (Exception e) {
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
+        }
+
+    }
 }
