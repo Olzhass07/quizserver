@@ -34,13 +34,21 @@ public class TestController {
         }
     }
 
-    @GetMapping
+    @GetMapping()
     public ResponseEntity<?> getAllTest() {
         try {
             return new ResponseEntity<>(testService.getAllTest(), HttpStatus.OK);
         }  catch (Exception e) {
             return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
         }
+    }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<?> getAllQuestions(@PathVariable Long id) {
+        try {
+            return new ResponseEntity<>(testService.getAllQuestionsByTest(id), HttpStatus.OK);
+        }  catch (Exception e) {
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
+        }
     }
 }
