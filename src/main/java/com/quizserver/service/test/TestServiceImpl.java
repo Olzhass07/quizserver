@@ -1,12 +1,14 @@
 package com.quizserver.service.test;
 
-import com.quizserver.dto.QuestionDTO;
-import com.quizserver.dto.TestDTO;
-import com.quizserver.dto.TestDetailsDTO;
+import com.quizserver.dto.*;
 import com.quizserver.enteties.Question;
 import com.quizserver.enteties.Test;
+import com.quizserver.enteties.TestResult;
+import com.quizserver.enteties.User;
 import com.quizserver.repository.QuestionRepository;
 import com.quizserver.repository.TestRepository;
+import com.quizserver.repository.TestResultRepository;
+import com.quizserver.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -25,6 +27,12 @@ public class TestServiceImpl implements TestService {
 
     @Autowired
     private QuestionRepository questionRepository;
+
+    @Autowired
+    private TestResultRepository testResultRepository;
+
+    @Autowired
+    private UserRepository userRepository;
 
     public TestDTO createTest(TestDTO dto){
         Test test = new Test();
@@ -72,5 +80,33 @@ public class TestServiceImpl implements TestService {
             return testDetailsDTO;
         }
         return testDetailsDTO;
+    }
+
+    public TestResultDTO submitTest(SubmitTestDTO request){
+        Test test = testRepository.findById(request.getTestId()).orElseThrow(() -> new EntityNotFoundException("Test not found"));
+
+        User user = userRepository.findById(request.getUserId()).orElseThrow(() -> new EntityNotFoundException("User not found"));
+
+        int correctAnswers = 0;
+        for(QuestionResponse response : request.getResponses()){
+            Question question = questionRepository.findById(response.getQuestionId())
+                .orElseThrow(() -> new EntityNotFoundException("Question not found"));
+
+            if(question.getCorrectOption().equals(response.getSelectedOption())){
+                correctAnswers++;
+            }
+        }
+
+        int totalQuestions = test.getQuestions().size();
+        double percentage = ((double) correctAnswers/totalQuestions) * 100;
+
+        TestResult testResult = new TestResult();
+        testResult.setTest(test);
+        testResult.setUser(user);
+        testResult.setTotalQuestions(totalQuestions);
+        testResult.setCorrectAnswers(correctAnswers);
+        testResult.setPercentage(percentage);
+
+        return testResultRepository.save(testResult).getDto();
     }
 }
