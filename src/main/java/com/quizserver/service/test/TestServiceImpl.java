@@ -21,6 +21,7 @@ import java.util.stream.Collectors;
 public class TestServiceImpl implements TestService {
 
 
+
     @Autowired
     private TestRepository testRepository;
 
@@ -108,5 +109,8 @@ public class TestServiceImpl implements TestService {
         testResult.setPercentage(percentage);
 
         return testResultRepository.save(testResult).getDto();
+    }
+    public List<TestResultDTO> getAllTestResults(){
+        return testResultRepository.findAll().stream().map(TestResult::getDto).collect(Collectors.toList());
     }
 }
