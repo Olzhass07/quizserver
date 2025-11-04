@@ -17,9 +17,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+
 @Service
 public class TestServiceImpl implements TestService {
-
 
 
     @Autowired
@@ -35,7 +35,7 @@ public class TestServiceImpl implements TestService {
     @Autowired
     private UserRepository userRepository;
 
-    public TestDTO createTest(TestDTO dto){
+    public TestDTO createTest(TestDTO dto) {
         Test test = new Test();
 
         test.setTitle(dto.getTitle());
@@ -45,9 +45,9 @@ public class TestServiceImpl implements TestService {
         return testRepository.save(test).getDto();
     }
 
-    public QuestionDTO addQuestionInTest(QuestionDTO dto){
+    public QuestionDTO addQuestionInTest(QuestionDTO dto) {
         Optional<Test> optionalTest = testRepository.findById(dto.getId());
-        if(optionalTest.isPresent()){
+        if (optionalTest.isPresent()) {
             Question question = new Question();
 
             question.setTest(optionalTest.get());
@@ -63,16 +63,16 @@ public class TestServiceImpl implements TestService {
         throw new EntityNotFoundException("Test not found");
     }
 
-    public List<TestDTO>  getAllTest(){
+    public List<TestDTO> getAllTest() {
         return testRepository.findAll().stream().peek(
-                test -> test.setTime(test.getQuestions().size() * test.getTime())).collect(Collectors.toList())
+                        test -> test.setTime(test.getQuestions().size() * test.getTime())).collect(Collectors.toList())
                 .stream().map(Test::getDto).collect(Collectors.toList());
     }
 
-    public TestDetailsDTO getAllQuestionsByTest(Long id){
+    public TestDetailsDTO getAllQuestionsByTest(Long id) {
         Optional<Test> optionalTest = testRepository.findById(id);
         TestDetailsDTO testDetailsDTO = new TestDetailsDTO();
-        if(optionalTest.isPresent()){
+        if (optionalTest.isPresent()) {
             TestDTO testDTO = optionalTest.get().getDto();
             testDTO.setTime(optionalTest.get().getTime() * optionalTest.get().getQuestions().size());
 
@@ -83,23 +83,23 @@ public class TestServiceImpl implements TestService {
         return testDetailsDTO;
     }
 
-    public TestResultDTO submitTest(SubmitTestDTO request){
+    public TestResultDTO submitTest(SubmitTestDTO request) {
         Test test = testRepository.findById(request.getTestId()).orElseThrow(() -> new EntityNotFoundException("Test not found"));
 
         User user = userRepository.findById(request.getUserId()).orElseThrow(() -> new EntityNotFoundException("User not found"));
 
         int correctAnswers = 0;
-        for(QuestionResponse response : request.getResponses()){
+        for (QuestionResponse response : request.getResponses()) {
             Question question = questionRepository.findById(response.getQuestionId())
-                .orElseThrow(() -> new EntityNotFoundException("Question not found"));
+                    .orElseThrow(() -> new EntityNotFoundException("Question not found"));
 
-            if(question.getCorrectOption().equals(response.getSelectedOption())){
+            if (question.getCorrectOption().equals(response.getSelectedOption())) {
                 correctAnswers++;
             }
         }
 
         int totalQuestions = test.getQuestions().size();
-        double percentage = ((double) correctAnswers/totalQuestions) * 100;
+        double percentage = ((double) correctAnswers / totalQuestions) * 100;
 
         TestResult testResult = new TestResult();
         testResult.setTest(test);
@@ -110,7 +110,12 @@ public class TestServiceImpl implements TestService {
 
         return testResultRepository.save(testResult).getDto();
     }
-    public List<TestResultDTO> getAllTestResults(){
+
+    public List<TestResultDTO> getAllTestResults() {
         return testResultRepository.findAll().stream().map(TestResult::getDto).collect(Collectors.toList());
+    }
+
+    public List<TestResultDTO> getAllTestResultsOfUser(Long userId) {
+        return testResultRepository.findAllByUserId(userId).stream().map(TestResult::getDto).collect(Collectors.toList());
     }
 }
