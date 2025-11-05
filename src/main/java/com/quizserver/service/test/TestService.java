@@ -1,8 +1,6 @@
 package com.quizserver.service.test;
 
 import com.quizserver.dto.*;
-import com.quizserver.enteties.Test;
-
 import java.util.List;
 
 public interface TestService {
@@ -11,7 +9,7 @@ public interface TestService {
 
     QuestionDTO addQuestionInTest(QuestionDTO dto);
 
-    List<TestDTO>  getAllTest();
+    List<TestDTO> getAllTest();
 
     TestDetailsDTO getAllQuestionsByTest(Long id);
 
@@ -20,4 +18,9 @@ public interface TestService {
     List<TestResultDTO> getAllTestResults();
 
     List<TestResultDTO> getAllTestResultsOfUser(Long userId);
+
+    // ✅ Новые методы
+    void updateTest(Long id, TestDTO dto);
+
+    void deleteTest(Long id);
 }

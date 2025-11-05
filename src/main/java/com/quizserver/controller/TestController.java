@@ -77,4 +77,16 @@ public class TestController {
             return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
+    @PutMapping("/{id}")
+    public ResponseEntity<?> updateTest(@PathVariable Long id, @RequestBody TestDTO dto) {
+        testService.updateTest(id, dto);
+        return ResponseEntity.noContent().build(); // 204
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteTest(@PathVariable Long id) {
+        testService.deleteTest(id);
+        return ResponseEntity.noContent().build(); // 204
+    }
+
 }

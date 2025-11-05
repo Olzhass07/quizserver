@@ -17,8 +17,10 @@ public class Test {
     private String description;
     private Long time;
 
-    @OneToMany(mappedBy = "test", cascade = CascadeType.ALL)
+
+    @OneToMany(mappedBy = "test", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Question> questions;
+
 
     public TestDTO getDto(){
         TestDTO testDTO = new TestDTO();
@@ -28,4 +30,5 @@ public class Test {
         testDTO.setTime(time);
         return testDTO;
     }
+
 }

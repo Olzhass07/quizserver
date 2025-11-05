@@ -12,19 +12,17 @@ import com.quizserver.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-
 @Service
 public class TestServiceImpl implements TestService {
 
-
     @Autowired
     private TestRepository testRepository;
-
 
     @Autowired
     private QuestionRepository questionRepository;
@@ -35,58 +33,58 @@ public class TestServiceImpl implements TestService {
     @Autowired
     private UserRepository userRepository;
 
+    @Override
     public TestDTO createTest(TestDTO dto) {
         Test test = new Test();
-
         test.setTitle(dto.getTitle());
         test.setDescription(dto.getDescription());
         test.setTime(dto.getTime());
-
         return testRepository.save(test).getDto();
     }
 
+    @Override
     public QuestionDTO addQuestionInTest(QuestionDTO dto) {
-        Optional<Test> optionalTest = testRepository.findById(dto.getId());
-        if (optionalTest.isPresent()) {
-            Question question = new Question();
+        Test test = testRepository.findById(dto.getId())
+                .orElseThrow(() -> new EntityNotFoundException("Test not found"));
 
-            question.setTest(optionalTest.get());
-            question.setQuestionText(dto.getQuestionText());
-            question.setOptionA(dto.getOptionA());
-            question.setOptionB(dto.getOptionB());
-            question.setOptionC(dto.getOptionC());
-            question.setOptionD(dto.getOptionD());
-            question.setCorrectOption(dto.getCorrectOption());
+        Question question = new Question();
+        question.setTest(test);
+        question.setQuestionText(dto.getQuestionText());
+        question.setOptionA(dto.getOptionA());
+        question.setOptionB(dto.getOptionB());
+        question.setOptionC(dto.getOptionC());
+        question.setOptionD(dto.getOptionD());
+        question.setCorrectOption(dto.getCorrectOption());
 
-            return questionRepository.save(question).getDto();
-        }
-        throw new EntityNotFoundException("Test not found");
+        return questionRepository.save(question).getDto();
     }
 
+    @Override
     public List<TestDTO> getAllTest() {
-        return testRepository.findAll().stream().peek(
-                        test -> test.setTime(test.getQuestions().size() * test.getTime())).collect(Collectors.toList())
-                .stream().map(Test::getDto).collect(Collectors.toList());
+        return testRepository.findAll().stream()
+                .map(Test::getDto)
+                .collect(Collectors.toList());
     }
 
+    @Override
     public TestDetailsDTO getAllQuestionsByTest(Long id) {
-        Optional<Test> optionalTest = testRepository.findById(id);
-        TestDetailsDTO testDetailsDTO = new TestDetailsDTO();
-        if (optionalTest.isPresent()) {
-            TestDTO testDTO = optionalTest.get().getDto();
-            testDTO.setTime(optionalTest.get().getTime() * optionalTest.get().getQuestions().size());
+        Test test = testRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Test not found"));
 
-            testDetailsDTO.setTestDTO(testDTO);
-            testDetailsDTO.setQuestions(optionalTest.get().getQuestions().stream().map(Question::getDto).toList());
-            return testDetailsDTO;
-        }
-        return testDetailsDTO;
+        TestDetailsDTO dto = new TestDetailsDTO();
+        TestDTO testDTO = test.getDto();
+        dto.setTestDTO(testDTO);
+        dto.setQuestions(test.getQuestions().stream().map(Question::getDto).toList());
+        return dto;
     }
 
+    @Override
     public TestResultDTO submitTest(SubmitTestDTO request) {
-        Test test = testRepository.findById(request.getTestId()).orElseThrow(() -> new EntityNotFoundException("Test not found"));
+        Test test = testRepository.findById(request.getTestId())
+                .orElseThrow(() -> new EntityNotFoundException("Test not found"));
 
-        User user = userRepository.findById(request.getUserId()).orElseThrow(() -> new EntityNotFoundException("User not found"));
+        User user = userRepository.findById(request.getUserId())
+                .orElseThrow(() -> new EntityNotFoundException("User not found"));
 
         int correctAnswers = 0;
         for (QuestionResponse response : request.getResponses()) {
@@ -111,11 +109,39 @@ public class TestServiceImpl implements TestService {
         return testResultRepository.save(testResult).getDto();
     }
 
+    @Override
     public List<TestResultDTO> getAllTestResults() {
-        return testResultRepository.findAll().stream().map(TestResult::getDto).collect(Collectors.toList());
+        return testResultRepository.findAll().stream().map(TestResult::getDto).toList();
     }
 
+    @Override
     public List<TestResultDTO> getAllTestResultsOfUser(Long userId) {
-        return testResultRepository.findAllByUserId(userId).stream().map(TestResult::getDto).collect(Collectors.toList());
+        return testResultRepository.findAllByUserId(userId).stream().map(TestResult::getDto).toList();
+    }
+
+    // ✅ Новый метод: UPDATE
+    @Override
+    @Transactional
+    public void updateTest(Long id, TestDTO dto) {
+        Test test = testRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Test not found"));
+
+        if (dto.getTitle() != null) test.setTitle(dto.getTitle());
+        if (dto.getDescription() != null) test.setDescription(dto.getDescription());
+        if (dto.getTime() != null) test.setTime(dto.getTime());
+
+        testRepository.save(test);
+    }
+
+    // ✅ Новый метод: DELETE
+    @Override
+    @Transactional
+    public void deleteTest(Long id) {
+        if (!testRepository.existsById(id)) {
+            throw new EntityNotFoundException("Test not found");
+        }
+        testResultRepository.deleteAllByTestId(id);
+        questionRepository.deleteAllByTestId(id);
+        testRepository.deleteById(id);
     }
 }
