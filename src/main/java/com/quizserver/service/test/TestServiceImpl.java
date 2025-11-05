@@ -62,9 +62,15 @@ public class TestServiceImpl implements TestService {
     @Override
     public List<TestDTO> getAllTest() {
         return testRepository.findAll().stream()
-                .map(Test::getDto)
-                .collect(Collectors.toList());
+                .map(test -> {
+                    TestDTO dto = test.getDto();
+                    int questionCount = (test.getQuestions() != null) ? test.getQuestions().size() : 0;
+                    dto.setTime(questionCount * test.getTime());
+                    return dto;
+                })
+                .toList();
     }
+
 
     @Override
     public TestDetailsDTO getAllQuestionsByTest(Long id) {

@@ -11,8 +11,9 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("api/test")
-@CrossOrigin("*")
-public class TestController {
+public class TestController
+    {
+
 
     @Autowired
     private TestService testService;
@@ -57,22 +58,6 @@ public class TestController {
     public ResponseEntity<?> submitTest(@RequestBody SubmitTestDTO dto) {
         try {
             return new ResponseEntity<>(testService.submitTest(dto), HttpStatus.OK);
-        } catch (Exception e) {
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
-        }
-    }
-    @GetMapping("/test-result")
-    public ResponseEntity<?> getAllTestResults(){
-        try {
-            return new ResponseEntity<>(testService.getAllTestResults(), HttpStatus.OK);
-        } catch (Exception e) {
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
-        }
-    }
-    @GetMapping("/test-result/{id}")
-    public ResponseEntity<?> getAllTestResultsOfUser(@PathVariable Long id){
-        try {
-            return new ResponseEntity<>(testService.getAllTestResultsOfUser(id), HttpStatus.OK);
         } catch (Exception e) {
             return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
         }
