@@ -19,8 +19,15 @@ public interface TestService {
 
     List<TestResultDTO> getAllTestResultsOfUser(Long userId);
 
-    // ✅ Новые методы
     void updateTest(Long id, TestDTO dto);
 
     void deleteTest(Long id);
+
+    // ✅ Новые методы для ВОПРОСОВ
+    QuestionDTO updateQuestion(Long id, QuestionDTO dto);
+
+    void deleteQuestion(Long id);
+
+    // ✅ Новый метод для получения детального разбора результата
+    TestResultDTO getTestResultDetails(Long resultId);
 }

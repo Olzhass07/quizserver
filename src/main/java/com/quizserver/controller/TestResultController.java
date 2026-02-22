@@ -31,4 +31,14 @@ public class TestResultController {
             return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
+
+    // ✅ НОВЫЙ ЭНДПОИНТ: детальный разбор конкретного результата
+    @GetMapping("/detail/{id}")
+    public ResponseEntity<?> getTestResultDetails(@PathVariable Long id) {
+        try {
+            return new ResponseEntity<>(testService.getTestResultDetails(id), HttpStatus.OK);
+        } catch (Exception e) {
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
+        }
+    }
 }

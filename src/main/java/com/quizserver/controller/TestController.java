@@ -11,9 +11,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("api/test")
-public class TestController
-    {
-
+public class TestController {
 
     @Autowired
     private TestService testService;
@@ -31,7 +29,7 @@ public class TestController
     public ResponseEntity<?> addQuestionInTest(@RequestBody QuestionDTO dto) {
         try {
             return new ResponseEntity<>(testService.addQuestionInTest(dto), HttpStatus.CREATED);
-        }  catch (Exception e) {
+        } catch (Exception e) {
             return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
@@ -40,7 +38,7 @@ public class TestController
     public ResponseEntity<?> getAllTest() {
         try {
             return new ResponseEntity<>(testService.getAllTest(), HttpStatus.OK);
-        }  catch (Exception e) {
+        } catch (Exception e) {
             return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
@@ -49,7 +47,7 @@ public class TestController
     public ResponseEntity<?> getAllQuestions(@PathVariable Long id) {
         try {
             return new ResponseEntity<>(testService.getAllQuestionsByTest(id), HttpStatus.OK);
-        }  catch (Exception e) {
+        } catch (Exception e) {
             return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
@@ -62,16 +60,42 @@ public class TestController
             return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
+
     @PutMapping("/{id}")
     public ResponseEntity<?> updateTest(@PathVariable Long id, @RequestBody TestDTO dto) {
-        testService.updateTest(id, dto);
-        return ResponseEntity.noContent().build(); // 204
+        try {
+            testService.updateTest(id, dto);
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteTest(@PathVariable Long id) {
         testService.deleteTest(id);
         return ResponseEntity.noContent().build(); // 204
+    }
+
+    // ✅ НОВЫЕ ЭНДПОИНТЫ ДЛЯ ВОПРОСОВ
+
+    @PutMapping("/question/{id}")
+    public ResponseEntity<?> updateQuestion(@PathVariable Long id, @RequestBody QuestionDTO dto) {
+        try {
+            return new ResponseEntity<>(testService.updateQuestion(id, dto), HttpStatus.OK);
+        } catch (Exception e) {
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    @DeleteMapping("/question/{id}")
+    public ResponseEntity<?> deleteQuestion(@PathVariable Long id) {
+        try {
+            testService.deleteQuestion(id);
+            return ResponseEntity.noContent().build();
+        } catch (Exception e) {
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
+        }
     }
 
 }

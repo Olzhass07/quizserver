@@ -2,10 +2,13 @@ package com.quizserver.service.test;
 
 import com.quizserver.dto.*;
 import com.quizserver.enteties.Question;
+import com.quizserver.enteties.ResultAnswerRecord;
 import com.quizserver.enteties.Test;
 import com.quizserver.enteties.TestResult;
 import com.quizserver.enteties.User;
+import com.quizserver.enums.QuestionType;
 import com.quizserver.repository.QuestionRepository;
+import com.quizserver.repository.ResultAnswerRecordRepository;
 import com.quizserver.repository.TestRepository;
 import com.quizserver.repository.TestResultRepository;
 import com.quizserver.repository.UserRepository;
@@ -33,6 +36,9 @@ public class TestServiceImpl implements TestService {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private ResultAnswerRecordRepository resultAnswerRecordRepository;
+
     @Override
     public TestDTO createTest(TestDTO dto) {
         Test test = new Test();
@@ -44,7 +50,8 @@ public class TestServiceImpl implements TestService {
 
     @Override
     public QuestionDTO addQuestionInTest(QuestionDTO dto) {
-        Test test = testRepository.findById(dto.getId())
+        // Look for the test using testId instead of id
+        Test test = testRepository.findById(dto.getTestId())
                 .orElseThrow(() -> new EntityNotFoundException("Test not found"));
 
         Question question = new Question();
@@ -55,8 +62,42 @@ public class TestServiceImpl implements TestService {
         question.setOptionC(dto.getOptionC());
         question.setOptionD(dto.getOptionD());
         question.setCorrectOption(dto.getCorrectOption());
+        question.setQuestionType(dto.getQuestionType() != null ? dto.getQuestionType() : QuestionType.MULTIPLE_CHOICE);
 
         return questionRepository.save(question).getDto();
+    }
+
+    @Override
+    @Transactional
+    public QuestionDTO updateQuestion(Long id, QuestionDTO dto) {
+        Question question = questionRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Question not found"));
+
+        if (dto.getQuestionText() != null)
+            question.setQuestionText(dto.getQuestionText());
+        if (dto.getOptionA() != null)
+            question.setOptionA(dto.getOptionA());
+        if (dto.getOptionB() != null)
+            question.setOptionB(dto.getOptionB());
+        if (dto.getOptionC() != null)
+            question.setOptionC(dto.getOptionC());
+        if (dto.getOptionD() != null)
+            question.setOptionD(dto.getOptionD());
+        if (dto.getCorrectOption() != null)
+            question.setCorrectOption(dto.getCorrectOption());
+        if (dto.getQuestionType() != null)
+            question.setQuestionType(dto.getQuestionType());
+
+        return questionRepository.save(question).getDto();
+    }
+
+    @Override
+    @Transactional
+    public void deleteQuestion(Long id) {
+        if (!questionRepository.existsById(id)) {
+            throw new EntityNotFoundException("Question not found");
+        }
+        questionRepository.deleteById(id);
     }
 
     @Override
@@ -64,13 +105,12 @@ public class TestServiceImpl implements TestService {
         return testRepository.findAll().stream()
                 .map(test -> {
                     TestDTO dto = test.getDto();
-                    int questionCount = (test.getQuestions() != null) ? test.getQuestions().size() : 0;
-                    dto.setTime(questionCount * test.getTime());
+                    // Simply return the time stored in the test (total test time)
+                    dto.setTime(test.getTime() != null ? test.getTime() : 0L);
                     return dto;
                 })
                 .toList();
     }
-
 
     @Override
     public TestDetailsDTO getAllQuestionsByTest(Long id) {
@@ -85,6 +125,7 @@ public class TestServiceImpl implements TestService {
     }
 
     @Override
+    @Transactional
     public TestResultDTO submitTest(SubmitTestDTO request) {
         Test test = testRepository.findById(request.getTestId())
                 .orElseThrow(() -> new EntityNotFoundException("Test not found"));
@@ -92,27 +133,65 @@ public class TestServiceImpl implements TestService {
         User user = userRepository.findById(request.getUserId())
                 .orElseThrow(() -> new EntityNotFoundException("User not found"));
 
-        int correctAnswers = 0;
+        // 1. Create the Result object
+        TestResult testResult = new TestResult();
+        testResult.setTest(test);
+        testResult.setUser(user);
+
+        int correctAnswersCount = 0;
+        int totalQuestions = test.getQuestions().size();
+
+        // 2. Process answers and save records
+        List<ResultAnswerRecord> answerRecords = new java.util.ArrayList<>();
+
         for (QuestionResponse response : request.getResponses()) {
             Question question = questionRepository.findById(response.getQuestionId())
                     .orElseThrow(() -> new EntityNotFoundException("Question not found"));
 
-            if (question.getCorrectOption().equals(response.getSelectedOption())) {
-                correctAnswers++;
+            boolean isCorrect = question.getCorrectOption().equalsIgnoreCase(response.getSelectedOption());
+            if (isCorrect) {
+                correctAnswersCount++;
             }
+
+            ResultAnswerRecord record = new ResultAnswerRecord();
+            record.setTestResult(testResult);
+            record.setQuestion(question);
+            record.setSelectedOption(response.getSelectedOption());
+            record.setCorrect(isCorrect);
+            answerRecords.add(record);
         }
 
-        int totalQuestions = test.getQuestions().size();
-        double percentage = ((double) correctAnswers / totalQuestions) * 100;
+        double percentage = totalQuestions > 0 ? ((double) correctAnswersCount / totalQuestions) * 100 : 0;
 
-        TestResult testResult = new TestResult();
-        testResult.setTest(test);
-        testResult.setUser(user);
         testResult.setTotalQuestions(totalQuestions);
-        testResult.setCorrectAnswers(correctAnswers);
+        testResult.setCorrectAnswers(correctAnswersCount);
         testResult.setPercentage(percentage);
+        testResult.setAnswerRecords(answerRecords);
 
         return testResultRepository.save(testResult).getDto();
+    }
+
+    @Override
+    public TestResultDTO getTestResultDetails(Long resultId) {
+        TestResult result = testResultRepository.findById(resultId)
+                .orElseThrow(() -> new EntityNotFoundException("Result not found"));
+
+        TestResultDTO dto = result.getDto();
+
+        // Build the question breakdown
+        List<QuestionResultDetailDTO> details = result.getAnswerRecords().stream()
+                .map(record -> {
+                    QuestionResultDetailDTO detail = new QuestionResultDetailDTO();
+                    detail.setQuestionId(record.getQuestion().getId());
+                    detail.setQuestionText(record.getQuestion().getQuestionText());
+                    detail.setSelectedOption(record.getSelectedOption());
+                    detail.setCorrectOption(record.getQuestion().getCorrectOption());
+                    detail.setCorrect(record.isCorrect());
+                    return detail;
+                }).toList();
+
+        dto.setQuestionDetails(details);
+        return dto;
     }
 
     @Override
@@ -125,21 +204,22 @@ public class TestServiceImpl implements TestService {
         return testResultRepository.findAllByUserId(userId).stream().map(TestResult::getDto).toList();
     }
 
-    // ✅ Новый метод: UPDATE
     @Override
     @Transactional
     public void updateTest(Long id, TestDTO dto) {
         Test test = testRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Test not found"));
 
-        if (dto.getTitle() != null) test.setTitle(dto.getTitle());
-        if (dto.getDescription() != null) test.setDescription(dto.getDescription());
-        if (dto.getTime() != null) test.setTime(dto.getTime());
+        if (dto.getTitle() != null)
+            test.setTitle(dto.getTitle());
+        if (dto.getDescription() != null)
+            test.setDescription(dto.getDescription());
+        if (dto.getTime() != null)
+            test.setTime(dto.getTime());
 
         testRepository.save(test);
     }
 
-    // ✅ Новый метод: DELETE
     @Override
     @Transactional
     public void deleteTest(Long id) {
