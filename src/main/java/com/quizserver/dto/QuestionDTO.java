@@ -24,6 +24,14 @@ public class QuestionDTO {
 
     private String explanation;
 
+    private String imageName;
+
+    private String imageContentType;
+
+    private String imageUrl;
+
+    private boolean hasImage;
+
     // The ID of the test this question belongs to
     private Long testId;
 

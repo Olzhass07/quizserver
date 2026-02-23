@@ -16,10 +16,10 @@ import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Service
 public class TestServiceImpl implements TestService {
@@ -50,19 +50,19 @@ public class TestServiceImpl implements TestService {
 
     @Override
     public QuestionDTO addQuestionInTest(QuestionDTO dto) {
-        // Look for the test using testId instead of id
+        return addQuestionInTestWithImage(dto, null);
+    }
+
+    @Override
+    @Transactional
+    public QuestionDTO addQuestionInTestWithImage(QuestionDTO dto, MultipartFile image) {
         Test test = testRepository.findById(dto.getTestId())
                 .orElseThrow(() -> new EntityNotFoundException("Test not found"));
 
         Question question = new Question();
         question.setTest(test);
-        question.setQuestionText(dto.getQuestionText());
-        question.setOptionA(dto.getOptionA());
-        question.setOptionB(dto.getOptionB());
-        question.setOptionC(dto.getOptionC());
-        question.setOptionD(dto.getOptionD());
-        question.setCorrectOption(dto.getCorrectOption());
-        question.setQuestionType(dto.getQuestionType() != null ? dto.getQuestionType() : QuestionType.MULTIPLE_CHOICE);
+        applyQuestionFields(question, dto);
+        applyImage(question, image);
 
         return questionRepository.save(question).getDto();
     }
@@ -70,25 +70,37 @@ public class TestServiceImpl implements TestService {
     @Override
     @Transactional
     public QuestionDTO updateQuestion(Long id, QuestionDTO dto) {
+        return updateQuestionWithImage(id, dto, null, false);
+    }
+
+    @Override
+    @Transactional
+    public QuestionDTO updateQuestionWithImage(Long id, QuestionDTO dto, MultipartFile image, boolean removeImage) {
         Question question = questionRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Question not found"));
 
-        if (dto.getQuestionText() != null)
-            question.setQuestionText(dto.getQuestionText());
-        if (dto.getOptionA() != null)
-            question.setOptionA(dto.getOptionA());
-        if (dto.getOptionB() != null)
-            question.setOptionB(dto.getOptionB());
-        if (dto.getOptionC() != null)
-            question.setOptionC(dto.getOptionC());
-        if (dto.getOptionD() != null)
-            question.setOptionD(dto.getOptionD());
-        if (dto.getCorrectOption() != null)
-            question.setCorrectOption(dto.getCorrectOption());
-        if (dto.getQuestionType() != null)
-            question.setQuestionType(dto.getQuestionType());
+        applyQuestionFields(question, dto);
+
+        if (removeImage) {
+            question.setImageData(null);
+            question.setImageName(null);
+            question.setImageContentType(null);
+        } else {
+            applyImage(question, image);
+        }
 
         return questionRepository.save(question).getDto();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Question getQuestionImage(Long id) {
+        Question question = questionRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Question not found"));
+        if (question.getImageData() == null || question.getImageData().length == 0) {
+            throw new EntityNotFoundException("Image not found");
+        }
+        return question;
     }
 
     @Override
@@ -238,5 +250,40 @@ public class TestServiceImpl implements TestService {
         testResultRepository.deleteAllByTestId(id);
         questionRepository.deleteAllByTestId(id);
         testRepository.deleteById(id);
+    }
+
+    private void applyQuestionFields(Question question, QuestionDTO dto) {
+        if (dto.getQuestionText() != null)
+            question.setQuestionText(dto.getQuestionText());
+        if (dto.getOptionA() != null)
+            question.setOptionA(dto.getOptionA());
+        if (dto.getOptionB() != null)
+            question.setOptionB(dto.getOptionB());
+        if (dto.getOptionC() != null)
+            question.setOptionC(dto.getOptionC());
+        if (dto.getOptionD() != null)
+            question.setOptionD(dto.getOptionD());
+        if (dto.getCorrectOption() != null)
+            question.setCorrectOption(dto.getCorrectOption());
+        if (dto.getExplanation() != null)
+            question.setExplanation(dto.getExplanation());
+        question.setQuestionType(dto.getQuestionType() != null ? dto.getQuestionType() : QuestionType.MULTIPLE_CHOICE);
+    }
+
+    private void applyImage(Question question, MultipartFile image) {
+        if (image == null || image.isEmpty()) {
+            return;
+        }
+        String contentType = image.getContentType();
+        if (contentType == null || !contentType.startsWith("image/")) {
+            throw new IllegalArgumentException("Only image files are allowed");
+        }
+        try {
+            question.setImageData(image.getBytes());
+            question.setImageName(image.getOriginalFilename());
+            question.setImageContentType(contentType);
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to read image file", e);
+        }
     }
 }
