@@ -97,6 +97,7 @@ public class TestServiceImpl implements TestService {
         if (!questionRepository.existsById(id)) {
             throw new EntityNotFoundException("Question not found");
         }
+        resultAnswerRecordRepository.deleteAllByQuestionId(id);
         questionRepository.deleteById(id);
     }
 
@@ -113,6 +114,7 @@ public class TestServiceImpl implements TestService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public TestDetailsDTO getAllQuestionsByTest(Long id) {
         Test test = testRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Test not found"));
@@ -172,6 +174,7 @@ public class TestServiceImpl implements TestService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public TestResultDTO getTestResultDetails(Long resultId) {
         TestResult result = testResultRepository.findById(resultId)
                 .orElseThrow(() -> new EntityNotFoundException("Result not found"));
@@ -195,11 +198,13 @@ public class TestServiceImpl implements TestService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<TestResultDTO> getAllTestResults() {
         return testResultRepository.findAll().stream().map(TestResult::getDto).toList();
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<TestResultDTO> getAllTestResultsOfUser(Long userId) {
         return testResultRepository.findAllByUserId(userId).stream().map(TestResult::getDto).toList();
     }
@@ -226,6 +231,7 @@ public class TestServiceImpl implements TestService {
         if (!testRepository.existsById(id)) {
             throw new EntityNotFoundException("Test not found");
         }
+        resultAnswerRecordRepository.deleteAllByQuestionTestId(id);
         testResultRepository.deleteAllByTestId(id);
         questionRepository.deleteAllByTestId(id);
         testRepository.deleteById(id);

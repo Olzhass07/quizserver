@@ -73,8 +73,12 @@ public class TestController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteTest(@PathVariable Long id) {
-        testService.deleteTest(id);
-        return ResponseEntity.noContent().build(); // 204
+        try {
+            testService.deleteTest(id);
+            return ResponseEntity.noContent().build();
+        } catch (Exception e) {
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
     // ✅ НОВЫЕ ЭНДПОИНТЫ ДЛЯ ВОПРОСОВ
