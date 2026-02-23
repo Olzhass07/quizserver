@@ -231,7 +231,10 @@ public class TestServiceImpl implements TestService {
         if (!testRepository.existsById(id)) {
             throw new EntityNotFoundException("Test not found");
         }
-        resultAnswerRecordRepository.deleteAllByQuestionTestId(id);
+        List<TestResult> testResults = testResultRepository.findAllByTestId(id);
+        for (TestResult testResult : testResults) {
+            resultAnswerRecordRepository.deleteAllByTestResultId(testResult.getId());
+        }
         testResultRepository.deleteAllByTestId(id);
         questionRepository.deleteAllByTestId(id);
         testRepository.deleteById(id);

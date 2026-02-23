@@ -22,6 +22,5 @@ public interface ResultAnswerRecordRepository extends JpaRepository<ResultAnswer
 
     @Modifying
     @Transactional
-    @Query("DELETE FROM ResultAnswerRecord r WHERE r.question.test.id = :testId")
-    void deleteAllByQuestionTestId(@Param("testId") Long testId);
+    void deleteAllByTestResultId(Long testResultId);
 }
